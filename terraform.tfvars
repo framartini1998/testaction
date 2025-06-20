@@ -1,3 +1,1 @@
-environment = {
-  "name" = "test"
-}
+environment = "test"
