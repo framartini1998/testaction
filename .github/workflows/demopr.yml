@@ -62,7 +62,6 @@ jobs:
             })
               
       - run: echo "$TF_VAR_PROJ_ENV"
-      - run: echo ${{ steps.plan.outputs.stdout }}
       - run: echo ${{ steps.plan.outputs.stderr }}
       - run: echo ${{ steps.plan.outputs.exitcode }}
     

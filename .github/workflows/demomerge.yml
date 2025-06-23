@@ -1,0 +1,66 @@
+name: GitHub Actions APPLY
+
+on:
+  push:
+    branches:
+      - test  # Branch di destinazione per il merge (es. main, develop, test)
+
+jobs:
+  terraform:
+    name: "Terraform Apply"
+    runs-on: ubuntu-latest
+
+    env:
+      TF_VAR_PROJ_ENV: ${{ github.base_ref }}  # Ambiente di destinazione (es. production, staging, dev)
+      TF_LOG: "INFO"
+
+    permissions:
+      contents: write  # Permessi di scrittura necessari per commit (se necessario)
+      pull-requests: write  # Permessi per interagire con le pull request (se necessario)
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+
+      - name: Terraform Init
+        id: init
+        run: terraform init
+
+      - name: Terraform Apply
+        id: apply
+        run: terraform apply -auto-approve -no-color
+        env:
+          TF_INPUT: none  # Disabilita prompt interattivi
+
+      - name: add-plan-comment
+        id: comment
+        uses: actions/github-script@v7
+        env:
+          PLAN: "terraform\n${{ steps.apply.outputs.stdout }}"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terraform Initialization \`${{ steps.init.outcome }}\`
+            #### Terraform Plan \`${{ steps.apply.outcome }}\`
+            <details><summary>Show Plan</summary>
+            \`\`\`\n
+            ${process.env.PLAN}
+            \`\`\`
+            </details>
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.TF_VAR_PROJ_ENV }}\`, Workflow: \`${{ github.workflow }}\`*`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+
+      - run: echo "$TF_VAR_PROJ_ENV"
+      - run: echo ${{ steps.apply.outputs.stdout }}
+      - run: echo ${{ steps.apply.outputs.stderr }}
+      - run: echo ${{ steps.apply.outputs.exitcode }}
