@@ -35,7 +35,7 @@ jobs:
 
       - name: add-plan-comment
         id: comment
-        uses: actions/github-scripts@v3
+        uses: actions/github-scripts@v7
         env:
           PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
         with:
